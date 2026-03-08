@@ -182,7 +182,7 @@ export default function PreferencesPage() {
     }, [selectedSubject, selectedDomain, departmentData]);
 
     // Get faculties for selected slot
-    const faculties = useMemo(() => {
+    const faculties = useMemo<string[]>(() => {
         if (!selectedSubject || !selectedDomain || !selectedSlot || !departmentData) return [];
         const domainData = departmentData[selectedDomain] || {};
         const subjectData = domainData[selectedSubject] || [];

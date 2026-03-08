@@ -109,7 +109,6 @@ export const course_type_map: Record<string, string> = {
     BABIT102: 'E',
     BABIT103: 'E',
 };
-export { course_type_map };
 
 /**
  * Map course type codes to fullCourseData courseType format
