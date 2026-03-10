@@ -123,17 +123,8 @@
   display: flex;
   flex-direction: row;
   gap: 24px;
-  overflow-x: auto;
-}
-
-/* Hide scrollbar for smoother look */
-.white-cards-box::-webkit-scrollbar {
-  display: none;
-}
-
-.white-cards-box {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* ── Scroll arrows ── */

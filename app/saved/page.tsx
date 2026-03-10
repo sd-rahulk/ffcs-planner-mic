@@ -206,24 +206,6 @@ export default function SavedPage() {
         setTimeout(() => setToast(''), 3000);
     }, []);
 
-    // Enable vertical mouse wheel to horizontal scrolling
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (!el || viewMode !== 'list') return;
-
-        const handleWheel = (e: WheelEvent) => {
-            // Check if user is scrolling vertically without shift
-            if (e.deltaY !== 0 && e.deltaX === 0) {
-                e.preventDefault();
-                el.scrollBy({ left: e.deltaY * 2, behavior: "auto" });
-            }
-        };
-
-        el.addEventListener('wheel', handleWheel, { passive: false });
-        // Cleanup listener on unmount
-        return () => el.removeEventListener('wheel', handleWheel);
-    }, [viewMode, loading, timetables]);
-
     /* ── Handlers ── */
     function handleEdit(tt: TimetableEntry) {
         if (tt._id.startsWith('mock')) return;
