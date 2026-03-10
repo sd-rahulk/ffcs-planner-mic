@@ -103,7 +103,6 @@ export default function TimetablePage() {
         setIsSaving(true);
         try {
             const editingTimetableId = getCookie('editingTimetableId');
-            const editingTimetableTitle = getCookie('editingTimetableTitle');
 
             const slotsData = currentTT.map(s => ({
                 slot: s.slotName,
@@ -120,13 +119,17 @@ export default function TimetablePage() {
                 });
 
                 if (res.data.success) {
-                    // Keep editing cookies so user can continue to update the same timetable
-                    if (!isPublic) showToast('Timetable updated successfully!');
+                    if (!isPublic) {
+                        showToast('Timetable updated successfully!');
+                        setTimeout(() => { router.refresh(); router.push('/saved'); }, 1200);
+                    }
                     return { _id: editingTimetableId, shareId: null };
                 }
             } else {
-                // Create new timetable
-                const title = isPublic ? 'Shared Timetable' : (prompt('Enter a title for this timetable:', 'My Schedule') || 'Untitled');
+                // Create new timetable — use title from save modal (customTitle), fall back to state
+                const title = isPublic
+                    ? 'Shared Timetable'
+                    : (customTitle?.trim() || timetableTitle.trim() || 'My Schedule');
                 const res = await axios.post('/api/save-timetable', {
                     title,
                     slots: slotsData,
@@ -136,7 +139,10 @@ export default function TimetablePage() {
 
                 if (res.data.success) {
                     clearPlannerClientCache({ includeEditingState: false });
-                    if (!isPublic) showToast('Timetable saved successfully!');
+                    if (!isPublic) {
+                        showToast('Timetable saved successfully!');
+                        setTimeout(() => { router.refresh(); router.push('/saved'); }, 1200);
+                    }
                     return res.data.timetable;
                 }
             }
