@@ -103,7 +103,6 @@ export default function TimetablePage() {
         setIsSaving(true);
         try {
             const editingTimetableId = getCookie('editingTimetableId');
-            const editingTimetableTitle = getCookie('editingTimetableTitle');
 
             const slotsData = currentTT.map(s => ({
                 slot: s.slotName,
@@ -120,13 +119,17 @@ export default function TimetablePage() {
                 });
 
                 if (res.data.success) {
-                    // Keep editing cookies so user can continue to update the same timetable
-                    if (!isPublic) showToast('Timetable updated successfully!');
+                    if (!isPublic) {
+                        showToast('Timetable updated successfully!');
+                        setTimeout(() => { router.refresh(); router.push('/saved'); }, 1200);
+                    }
                     return { _id: editingTimetableId, shareId: null };
                 }
             } else {
-                // Create new timetable
-                const title = isPublic ? 'Shared Timetable' : (prompt('Enter a title for this timetable:', 'My Schedule') || 'Untitled');
+                // Create new timetable — use title from save modal (customTitle), fall back to state
+                const title = isPublic
+                    ? 'Shared Timetable'
+                    : (customTitle?.trim() || timetableTitle.trim() || 'My Schedule');
                 const res = await axios.post('/api/save-timetable', {
                     title,
                     slots: slotsData,
@@ -136,7 +139,10 @@ export default function TimetablePage() {
 
                 if (res.data.success) {
                     clearPlannerClientCache({ includeEditingState: false });
-                    if (!isPublic) showToast('Timetable saved successfully!');
+                    if (!isPublic) {
+                        showToast('Timetable saved successfully!');
+                        setTimeout(() => { router.refresh(); router.push('/saved'); }, 1200);
+                    }
                     return res.data.timetable;
                 }
             }
@@ -479,90 +485,94 @@ export default function TimetablePage() {
             </div>
 
             {/* Popover */}
-            {selectedSlot && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/20 backdrop-blur-[4px]" onClick={() => setSelectedSlot(null)}>
-                    <div
-                        className="bg-white rounded-[40px] shadow-2xl p-12 w-[90%] max-w-[500px] relative animate-[scaleIn_0.2s_ease] border-4"
-                        style={{ borderColor: getSlotColor(selectedSlot.courseCode, allCodes) }}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => setSelectedSlot(null)}
-                            className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors text-black"
+            {
+                selectedSlot && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/20 backdrop-blur-[4px]" onClick={() => setSelectedSlot(null)}>
+                        <div
+                            className="bg-white rounded-[40px] shadow-2xl p-12 w-[90%] max-w-[500px] relative animate-[scaleIn_0.2s_ease] border-4"
+                            style={{ borderColor: getSlotColor(selectedSlot.courseCode, allCodes) }}
+                            onClick={e => e.stopPropagation()}
                         >
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                        </button>
+                            <button
+                                onClick={() => setSelectedSlot(null)}
+                                className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors text-black"
+                            >
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            </button>
 
-                        <div className="mb-10">
-                            <span className="px-5 py-2 rounded-full text-[12px] font-black bg-gray-100 text-gray-500 uppercase tracking-widest mb-4 inline-block">Course Details</span>
-                            <h2 className="text-[32px] font-black text-black leading-tight mt-2">{selectedSlot.courseCode}</h2>
-                            <p className="text-[18px] font-bold text-gray-600 mt-2">{selectedSlot.courseName}</p>
-                        </div>
+                            <div className="mb-10">
+                                <span className="px-5 py-2 rounded-full text-[12px] font-black bg-gray-100 text-gray-500 uppercase tracking-widest mb-4 inline-block">Course Details</span>
+                                <h2 className="text-[32px] font-black text-black leading-tight mt-2">{selectedSlot.courseCode}</h2>
+                                <p className="text-[18px] font-bold text-gray-600 mt-2">{selectedSlot.courseName}</p>
+                            </div>
 
-                        <div className="space-y-8">
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">👨‍🏫</div>
-                                <div>
-                                    <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Faculty</p>
-                                    <p className="text-[18px] font-bold text-black">{selectedSlot.facultyName}</p>
+                            <div className="space-y-8">
+                                <div className="flex gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">👨‍🏫</div>
+                                    <div>
+                                        <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Faculty</p>
+                                        <p className="text-[18px] font-bold text-black">{selectedSlot.facultyName}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">🕒</div>
-                                <div>
-                                    <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Slot</p>
-                                    <p className="text-[18px] font-bold text-black">{selectedSlot.slotName}</p>
+                                <div className="flex gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">🕒</div>
+                                    <div>
+                                        <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Slot</p>
+                                        <p className="text-[18px] font-bold text-black">{selectedSlot.slotName}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">📍</div>
-                                <div>
-                                    <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Classroom</p>
-                                    <p className="text-[18px] font-bold text-black">Main Campus - TBD</p>
+                                <div className="flex gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[20px]">📍</div>
+                                    <div>
+                                        <p className="text-[12px] font-black text-gray-300 uppercase tracking-widest mb-1">Classroom</p>
+                                        <p className="text-[18px] font-bold text-black">Main Campus - TBD</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Save Modal */}
-            {showSaveModal && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowSaveModal(false)}>
-                    <div
-                        className="bg-white rounded-[24px] shadow-2xl p-8 w-[90%] max-w-[400px] relative animate-[scaleIn_0.2s_ease]"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <h2 className="text-[24px] font-black text-black mb-4">Save Timetable</h2>
-                        <input
-                            type="text"
-                            value={timetableTitle}
-                            onChange={(e) => setTimetableTitle(e.target.value)}
-                            className="w-full p-4 border-2 border-gray-100 rounded-xl mb-6 text-black font-semibold text-[16px] focus:border-[#A0C4FF] focus:ring-2 focus:ring-[#A0C4FF]/20 outline-none transition-all placeholder:font-medium"
-                            placeholder="Enter a title..."
-                            autoFocus
-                        />
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowSaveModal(false)}
-                                className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowSaveModal(false);
-                                    handleSave(false, timetableTitle);
-                                }}
-                                disabled={isSaving || !timetableTitle.trim()}
-                                className="px-6 py-2.5 rounded-xl font-bold bg-[#A0C4FF] text-black hover:bg-[#8ab2f2] transition-colors disabled:opacity-50"
-                            >
-                                Save
-                            </button>
+            {
+                showSaveModal && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowSaveModal(false)}>
+                        <div
+                            className="bg-white rounded-[24px] shadow-2xl p-8 w-[90%] max-w-[400px] relative animate-[scaleIn_0.2s_ease]"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <h2 className="text-[24px] font-black text-black mb-4">Save Timetable</h2>
+                            <input
+                                type="text"
+                                value={timetableTitle}
+                                onChange={(e) => setTimetableTitle(e.target.value)}
+                                className="w-full p-4 border-2 border-gray-100 rounded-xl mb-6 text-black font-semibold text-[16px] focus:border-[#A0C4FF] focus:ring-2 focus:ring-[#A0C4FF]/20 outline-none transition-all placeholder:font-medium"
+                                placeholder="Enter a title..."
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowSaveModal(false)}
+                                    className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowSaveModal(false);
+                                        handleSave(false, timetableTitle);
+                                    }}
+                                    disabled={isSaving || !timetableTitle.trim()}
+                                    className="px-6 py-2.5 rounded-xl font-bold bg-[#A0C4FF] text-black hover:bg-[#8ab2f2] transition-colors disabled:opacity-50"
+                                >
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

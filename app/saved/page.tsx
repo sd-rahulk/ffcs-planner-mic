@@ -8,7 +8,9 @@ import Image from 'next/image';
 import { getCourseType } from '@/lib/course_codes_map';
 import { fullCourseData } from '@/lib/type';
 import { useTimetable } from '@/lib/TimeTableContext';
+import { exportToPDF } from '@/lib/exportToPDF';
 import './saved.css';
+
 
 /* ── Slot → timetable grid mapping ── */
 const THEORY_SLOTS: Record<string, [number, number]> = {};
@@ -128,28 +130,6 @@ function convertTimetableToCoursePreferences(tt: TimetableEntry): fullCourseData
     return result;
 }
 
-/* ── Mock timetables for UI preview when no real data ── */
-const MOCK_SLOTS = [
-    { slot: 'A1+A2', courseCode: 'MAT201', courseName: 'Mathematics I', facultyName: 'Faculty A' },
-    { slot: 'B1+B2', courseCode: 'PHY201', courseName: 'Physics I', facultyName: 'Faculty B' },
-    { slot: 'C1+C2', courseCode: 'CHE201', courseName: 'Chemistry', facultyName: 'Faculty C' },
-    { slot: 'D1+D2', courseCode: 'CSE201', courseName: 'Programming', facultyName: 'Faculty D' },
-    { slot: 'E1+E2', courseCode: 'ENG201', courseName: 'English', facultyName: 'Faculty E' },
-    { slot: 'F1+F2', courseCode: 'ECO201', courseName: 'Economics', facultyName: 'Faculty F' },
-    { slot: 'G1+G2', courseCode: 'MGT201', courseName: 'Management', facultyName: 'Faculty G' },
-    { slot: 'TA1+TA2', courseCode: 'HUM201', courseName: 'Humanities', facultyName: 'Faculty H' },
-    { slot: 'TB1+TB2', courseCode: 'SOC201', courseName: 'Sociology', facultyName: 'Faculty I' },
-    { slot: 'TC1+TC2', courseCode: 'BIO201', courseName: 'Biology', facultyName: 'Faculty J' },
-    { slot: 'L1+L2', courseCode: 'PHY201L', courseName: 'Physics Lab', facultyName: 'Faculty B' },
-    { slot: 'L7+L8', courseCode: 'CHE201L', courseName: 'Chem Lab', facultyName: 'Faculty C' },
-    { slot: 'L19+L20', courseCode: 'CSE201L', courseName: 'CS Lab', facultyName: 'Faculty D' },
-];
-const MOCK_TIMETABLES: TimetableEntry[] = [
-    { _id: 'mock1', title: 'Timetable set 1', isPublic: false, createdAt: new Date('2026-02-28T17:33:00').toISOString(), slots: MOCK_SLOTS },
-    { _id: 'mock2', title: 'Timetable set 2', isPublic: false, createdAt: new Date('2026-02-28T17:33:00').toISOString(), slots: MOCK_SLOTS },
-    { _id: 'mock3', title: 'Timetable set 3', isPublic: false, createdAt: new Date('2026-02-28T17:33:00').toISOString(), slots: MOCK_SLOTS },
-];
-
 /* ── Main Page ── */
 export default function SavedPage() {
     const router = useRouter();
@@ -157,8 +137,7 @@ export default function SavedPage() {
     const userEmail = session?.user?.email;
     const { setTimetableData } = useTimetable();
 
-    const [timetables, setTimetables] = useState<TimetableEntry[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [timetables, setTimetables] = useState<TimetableEntry[] | null>(null);
     const [selectedTT, setSelectedTT] = useState<TimetableEntry | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'view'>('list');
 
@@ -168,6 +147,13 @@ export default function SavedPage() {
     const [renameValue, setRenameValue] = useState('');
     const [toast, setToast] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Unique value per mount — ensures the fetch effect re-runs every time
+    // this component mounts, even if userEmail/status haven't changed
+    const [mountId] = useState(() => Date.now());
+
+    // Derived loading: true while session is loading OR while auth is ready but fetch hasn't returned yet
+    const loading = status === 'loading' || (status === 'authenticated' && timetables === null);
 
     function scrollLeft() { scrollRef.current?.scrollBy({ left: -380, behavior: 'smooth' }); }
     function scrollRight() { scrollRef.current?.scrollBy({ left: 380, behavior: 'smooth' }); }
@@ -185,21 +171,16 @@ export default function SavedPage() {
         }
     }, [status, router]);
 
+    // Fetch timetables — runs on every mount (mountId is unique per mount)
+    // and whenever userEmail or auth status becomes available
     useEffect(() => {
-        if (!userEmail) return;
-        async function load() {
-            setLoading(true);
-            try {
-                const data = await fetchTimetablesByOwner(userEmail!);
-                setTimetables(data);
-            } catch {
-                setTimetables([]);
-            } finally {
-                setLoading(false);
-            }
-        }
-        void load();
-    }, [userEmail]);
+        if (status !== 'authenticated' || !userEmail) return;
+        let cancelled = false;
+        fetchTimetablesByOwner(userEmail)
+            .then(data => { if (!cancelled) setTimetables(data); })
+            .catch(() => { if (!cancelled) setTimetables([]); });
+        return () => { cancelled = true; };
+    }, [userEmail, status, mountId]);
 
     const showToast = useCallback((msg: string) => {
         setToast(msg);
@@ -229,19 +210,29 @@ export default function SavedPage() {
 
     async function handleDelete() {
         if (!selectedTT) return;
-        await axios.delete(`/api/timetables/${selectedTT._id}`);
-        setTimetables(prev => prev.filter(t => t._id !== selectedTT._id));
-        setDeleteOpen(false);
-        setSelectedTT(null);
-        setViewMode('list');
-        showToast('Timetable deleted successfully');
+        if (selectedTT._id.startsWith('mock')) {
+            setDeleteOpen(false);
+            showToast('Save a real timetable first — these are just preview cards.');
+            return;
+        }
+        try {
+            await axios.delete(`/api/timetables/${selectedTT._id}`);
+            setTimetables(prev => (prev ?? []).filter(t => t._id !== selectedTT._id));
+            setDeleteOpen(false);
+            setSelectedTT(null);
+            setViewMode('list');
+            showToast('Timetable deleted successfully');
+        } catch {
+            setDeleteOpen(false);
+            showToast('Failed to delete timetable. Please try again.');
+        }
     }
 
     async function handleRename() {
         if (!selectedTT || !renameValue.trim()) return;
         await axios.patch(`/api/timetables/${selectedTT._id}`, { title: renameValue });
         setTimetables(prev =>
-            prev.map(t => (t._id === selectedTT._id ? { ...t, title: renameValue } : t))
+            (prev ?? []).map(t => (t._id === selectedTT._id ? { ...t, title: renameValue } : t))
         );
         if (selectedTT) setSelectedTT({ ...selectedTT, title: renameValue });
         setRenameOpen(false);
@@ -253,7 +244,7 @@ export default function SavedPage() {
         const newState = !selectedTT.isPublic;
         await axios.patch(`/api/timetables/${selectedTT._id}`, { isPublic: newState });
         setTimetables(prev =>
-            prev.map(t => (t._id === selectedTT._id ? { ...t, isPublic: newState } : t))
+            (prev ?? []).map(t => (t._id === selectedTT._id ? { ...t, isPublic: newState } : t))
         );
         setSelectedTT({ ...selectedTT, isPublic: newState });
         showToast(newState ? 'Timetable is now public' : 'Timetable is now private');
@@ -265,7 +256,7 @@ export default function SavedPage() {
             await axios.patch(`/api/timetables/${selectedTT._id}`, { isPublic: true });
             setSelectedTT({ ...selectedTT, isPublic: true });
             setTimetables(prev =>
-                prev.map(t => (t._id === selectedTT._id ? { ...t, isPublic: true } : t))
+                (prev ?? []).map(t => (t._id === selectedTT._id ? { ...t, isPublic: true } : t))
             );
         }
         const { data } = await axios.get(`/api/timetables/${selectedTT._id}`);
@@ -274,15 +265,7 @@ export default function SavedPage() {
         showToast('Share link copied to clipboard!');
     }
 
-    if (status === 'loading') {
-        return (
-            <div className="loading-screen">
-                <div className="spinner spinner-lg" />
-            </div>
-        );
-    }
-
-    const displayTimetables = timetables.length > 0 ? timetables : MOCK_TIMETABLES;
+    const displayTimetables = timetables ?? [];
 
     return (
         <div className="saved-page">
@@ -307,6 +290,15 @@ export default function SavedPage() {
                                 <div className="spinner-center">
                                     <div className="spinner spinner-md" />
                                 </div>
+                            ) : displayTimetables.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">📅</div>
+                                    <h2 className="empty-title">No saved timetables yet</h2>
+                                    <p className="empty-desc">Go through the steps to build and save your first timetable.</p>
+                                    <button onClick={() => router.push('/preferences')} className="empty-btn">
+                                        Create a Timetable
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="cards-scroller-wrapper">
                                     {/* White background wrapping cards + arrows */}
@@ -324,13 +316,11 @@ export default function SavedPage() {
                                                     }}
                                                     onEdit={() => handleEdit(tt)}
                                                     onRename={() => {
-                                                        if (tt._id.startsWith('mock')) return;
                                                         setSelectedTT(tt);
                                                         setRenameValue(tt.title);
                                                         setRenameOpen(true);
                                                     }}
                                                     onDelete={() => {
-                                                        if (tt._id.startsWith('mock')) return;
                                                         setSelectedTT(tt);
                                                         setDeleteOpen(true);
                                                     }}
@@ -397,6 +387,7 @@ export default function SavedPage() {
                     onTogglePublic={handleTogglePublic}
                     session={session}
                     router={router}
+                    showToast={showToast}
                 />
             ) : null}
 
@@ -546,6 +537,7 @@ function TimetableDetailView({
     onCopyLink,
     session,
     router,
+    showToast,
 }: {
     tt: TimetableEntry;
     onBack: () => void;
@@ -557,6 +549,7 @@ function TimetableDetailView({
     session: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router: any;
+    showToast: (msg: string) => void;
 }) {
     const allCodes = tt.slots.map(s => s.courseCode);
 
@@ -598,6 +591,17 @@ function TimetableDetailView({
         '3:50pm-\n4:40pm', '4:40pm-\n5:30pm', '5:40pm-\n6:30pm', '6:30pm-\n7:20pm', '',
     ];
 
+    const handleDownload = async () => {
+        showToast('Preparing PDF...');
+        try {
+            await exportToPDF('saved-timetable-grid', `${tt.title}.pdf`);
+            showToast('PDF downloaded successfully!');
+        } catch (error) {
+            console.error('PDF error:', error);
+            showToast('Failed to generate PDF.');
+        }
+    };
+
     return (
         <div className="dv-page">
             {/* Main scrollable content */}
@@ -621,7 +625,7 @@ function TimetableDetailView({
 
                 {/* Timetable grid */}
                 <div className="dv-grid-box">
-                    <div className="dv-grid-scroll">
+                    <div className="dv-grid-scroll" id="saved-timetable-grid">
                         <table className="dv-table">
                             <thead>
                                 <tr>
@@ -681,7 +685,7 @@ function TimetableDetailView({
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                             Share
                         </button>
-                        <button className="dv-download-btn">
+                        <button className="dv-download-btn" onClick={handleDownload} >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                             Download
                         </button>
