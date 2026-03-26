@@ -68,27 +68,24 @@ export default function TimetablePage() {
 
     const hasInitialized = useRef(false);
 
-    // Load from cookies and generate if context is empty
+    // Always regenerate timetable from the latest cookie data on mount
     useEffect(() => {
         if (hasInitialized.current) return;
         hasInitialized.current = true;
 
-
-
-        if (!timetableData || timetableData.length === 0) {
-            const savedCoursesRaw = getCookie('preferenceCourses');
-            if (savedCoursesRaw) {
-                try {
-                    setIsGenerating(true);
-                    const savedCourses = JSON.parse(savedCoursesRaw) as fullCourseData[];
-                    const { result, clashes } = generateTT(savedCourses);
-                    setTimetableData(result);
-                    setClashMessage(clashes);
-                } catch (error) {
-                    console.error('Error generating timetable:', error);
-                } finally {
-                    setIsGenerating(false);
-                }
+        const savedCoursesRaw = getCookie('preferenceCourses');
+        if (savedCoursesRaw) {
+            try {
+                setIsGenerating(true);
+                const savedCourses = JSON.parse(savedCoursesRaw) as fullCourseData[];
+                const { result, clashes } = generateTT(savedCourses);
+                setTimetableData(result);
+                setCurrentIndex(0);
+                setClashMessage(clashes);
+            } catch (error) {
+                console.error('Error generating timetable:', error);
+            } finally {
+                setIsGenerating(false);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

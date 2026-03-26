@@ -9,7 +9,7 @@ import { clearPlannerClientCache } from "@/lib/clientCache";
 
 export default function LandingPage() {
   const [open, setOpen] = useState(false);
-  const [isCalendarAnimating, setIsCalendarAnimating] = useState(false);
+  const [animatingTiles, setAnimatingTiles] = useState<Record<number, boolean>>({});
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [showLogin, setShowLogin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -51,10 +51,10 @@ export default function LandingPage() {
     };
   }, [session, handleLogout]);
 
-  const handleCalendarClick = () => {
-    setIsCalendarAnimating(true);
+  const handleTileClick = (index: number) => {
+    setAnimatingTiles((prev) => ({ ...prev, [index]: true }));
     setTimeout(() => {
-      setIsCalendarAnimating(false);
+      setAnimatingTiles((prev) => ({ ...prev, [index]: false }));
     }, 1000);
   };
 
@@ -158,7 +158,7 @@ export default function LandingPage() {
           </div>
           <div className="hero-graphic">
             {/* Calendar pure CSS drawing */}
-            <div className={`calendar-graphic ${isCalendarAnimating ? 'cal-fade-animation' : ''}`} onClick={handleCalendarClick} style={{ cursor: 'pointer' }}>
+            <div className="calendar-graphic">
               <div className="cal-top">
                 <div className="cal-tab" style={{ background: '#fbcfe8' }}></div>
                 <div className="cal-tab" style={{ background: '#bfdbfe' }}></div>
@@ -169,33 +169,19 @@ export default function LandingPage() {
                 <div className="cal-tab" style={{ background: '#fbcfe8' }}></div>
               </div>
               <div className="cal-grid">
-                <div className="cal-box" style={{ background: '#93c5fd' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#f3e8ff' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-                <div className="cal-box" style={{ background: '#fbcfe8' }}></div>
-
-                <div className="cal-box" style={{ background: '#93c5fd' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#c4b5fd' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-
-                <div className="cal-box" style={{ background: '#93c5fd' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#c4b5fd' }}></div>
-                <div className="cal-box" style={{ background: '#93c5fd' }}></div>
-
-                <div className="cal-box" style={{ background: '#d8b4e2' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#c4b5fd' }}></div>
-                <div className="cal-box" style={{ background: '#bbf7d0' }}></div>
-                <div className="cal-box" style={{ background: '#fde047' }}></div>
+                {[
+                  '#93c5fd', '#fde047', '#bbf7d0', '#f3e8ff', '#fde047', '#fbcfe8',
+                  '#93c5fd', '#bbf7d0', '#fde047', '#bbf7d0', '#c4b5fd', '#fde047',
+                  '#93c5fd', '#bbf7d0', '#fde047', '#bbf7d0', '#c4b5fd', '#93c5fd',
+                  '#d8b4e2', '#fde047', '#bbf7d0', '#c4b5fd', '#bbf7d0', '#fde047'
+                ].map((color, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`cal-box ${animatingTiles[idx] ? 'animating' : ''}`} 
+                    style={{ background: color }}
+                    onClick={() => handleTileClick(idx)}
+                  ></div>
+                ))}
               </div>
             </div>
           </div>
@@ -309,7 +295,7 @@ export default function LandingPage() {
 
             <div className="f-block f-buttons">
               <button className="f-btn f-btn-gen" onClick={() => router.push('/preferences')}>
-                <Image src="/calendar_icon2.png" alt="calendar" width={32} height={32} />
+                <Image src="/calendar_icon2.png" alt="calendar" width={24} height={24} />
                 <span>Generate<br />timetable</span>
               </button>
               <button
@@ -322,27 +308,27 @@ export default function LandingPage() {
                   }
                 }}
               >
-                <Image src="/Clock.png" alt="clock" width={32} height={32} />
+                <Image src="/Clock.png" alt="clock" width={24} height={24} />
                 <span>View saved<br />timetables</span>
               </button>
               <button className="f-btn f-btn-slots" onClick={() => router.push('/slots')}>
-                <Image src="/slot_icon.png" alt="slot" width={32} height={32} />
+                <Image src="/slot_icon.png" alt="slot" width={24} height={24} />
                 <span>View slots</span>
               </button>
               <button className="f-btn f-btn-team" onClick={() => router.push('/team')}>
-                <Image src="/team_icon.png" alt="team" width={32} height={32} />
+                <Image src="/team_icon.png" alt="team" width={24} height={24} />
                 <span>View team</span>
               </button>
             </div>
 
             <div className="f-block f-graphics">
-              <div className="floating-tile" style={{ background: '#f3e8ff', top: '15px', left: '15px', transform: 'rotate(-12deg)' }}>C</div>
-              <div className="floating-tile" style={{ background: '#fef3c7', top: '55px', left: '45px', transform: 'rotate(8deg)' }}>D</div>
-              <div className="floating-tile" style={{ background: '#d1fae5', top: '20px', left: '75px', transform: 'rotate(15deg)' }}>G</div>
-              <div className="floating-tile" style={{ background: '#a7f3d0', top: '30px', right: '25px', transform: 'rotate(25deg)' }}>E</div>
-              <div className="floating-tile" style={{ background: '#bfdbfe', top: '65px', right: '65px', transform: 'rotate(-18deg)' }}>B</div>
-              <div className="floating-tile" style={{ background: '#fef08a', top: '85px', right: '15px', transform: 'rotate(-6deg)' }}>A</div>
-              <div className="floating-tile" style={{ background: '#e9d5ff', top: '95px', left: '110px', transform: 'rotate(22deg)' }}>F</div>
+              <div className="floating-tile" style={{ background: '#f3e8ff', top: '10px', left: '10px', transform: 'rotate(-12deg)' }}>C</div>
+              <div className="floating-tile" style={{ background: '#fef3c7', top: '35px', left: '35px', transform: 'rotate(8deg)' }}>D</div>
+              <div className="floating-tile" style={{ background: '#d1fae5', top: '15px', left: '55px', transform: 'rotate(15deg)' }}>G</div>
+              <div className="floating-tile" style={{ background: '#a7f3d0', top: '20px', right: '15px', transform: 'rotate(25deg)' }}>E</div>
+              <div className="floating-tile" style={{ background: '#bfdbfe', top: '45px', right: '45px', transform: 'rotate(-18deg)' }}>B</div>
+              <div className="floating-tile" style={{ background: '#fef08a', top: '60px', right: '10px', transform: 'rotate(-6deg)' }}>A</div>
+              <div className="floating-tile" style={{ background: '#e9d5ff', top: '70px', left: '80px', transform: 'rotate(22deg)' }}>F</div>
             </div>
 
             <div className="f-block f-credits">

@@ -40,6 +40,13 @@ export function generateTT(
                                     facultyName: faculty.facultyName,
                                 });
                             }
+                        } else {
+                            subjectOptions.push({
+                                courseCode: course.courseCode,
+                                courseName: course.courseName,
+                                slotName: slot.slotName,
+                                facultyName: faculty.facultyName,
+                            });
                         }
                     }
                 }

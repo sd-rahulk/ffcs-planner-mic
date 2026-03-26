@@ -399,7 +399,7 @@ export default function CoursesPage() {
                         )}
 
                     {/* ── Selected Courses Card ── */}
-                    <div className="bg-white rounded-2xl shadow-md h-[75vh] mb-4 animate-lucid-fade-up-delayed relative">
+                    <div className="bg-white rounded-2xl shadow-md h-[75vh] mb-4 animate-lucid-fade-up-delayed relative flex flex-col">
                         {/* Green header */}
                         <div className="bg-[#c6f6c6] px-6 py-4">
                             <h2 className="text-2xl font-bold text-black">Selected Courses</h2>
@@ -427,7 +427,7 @@ export default function CoursesPage() {
                     </div>
                                   
                             )}
-<div className='overflow-y-scroll h-[55vh]'>
+<div className='overflow-y-scroll flex-1 min-h-0'>
                     {/* Rows */}
                     {faculties.length === 0 && !lastRemovedFaculties ? (
                         <div className="px-6 py-10 text-center text-gray-400 text-sm">No courses selected yet</div>
