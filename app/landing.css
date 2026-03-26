@@ -88,7 +88,7 @@ body {
 /* Hero Section */
 .hero-section {
     display: flex;
-    padding: clamp(24px, 4vw, 60px);
+    padding: clamp(115px, 14vh, 200px) clamp(24px, 4vw, 64px);
     justify-content: space-between;
     align-items: center;
     gap: 40px;
@@ -97,11 +97,13 @@ body {
 
 .hero-text {
     flex: 1;
+    margin-left: 60px;
 }
 
 .hero-text h1 {
     font-size: clamp(36px, 5vw, 64px);
-    line-height: 1.05;
+    line-height: 0.92;
+    letter-spacing: -0.03em;
     margin: 0 0 24px 0;
     font-weight: 800;
     color: #000;
@@ -110,9 +112,10 @@ body {
 .hero-text p {
     font-size: 16px;
     color: #444;
-    line-height: 1.5;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
     margin-bottom: 32px;
-    max-width: 380px;
+    max-width: 480px;
 }
 
 .hero-buttons {
@@ -124,7 +127,7 @@ body {
     background-color: #aecbfa;
     color: #000;
     border: none;
-    padding: 14px 28px;
+    padding: 14px 40px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
@@ -140,7 +143,7 @@ body {
     background-color: transparent;
     color: #000;
     border: 2px solid #aecbfa;
-    padding: 12px 28px;
+    padding: 12px 40px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
@@ -200,8 +203,8 @@ body {
 
 /* Calendar Graphic - Pure CSS fallback based on image */
 .calendar-graphic {
-    width: min(420px, 100%);
-    height: 260px;
+    width: min(540px, 100%);
+    height: 280px;
     background: white;
     position: relative;
     display: flex;
@@ -434,23 +437,28 @@ body {
         grid-template-columns: minmax(250px, 1fr) minmax(350px, 1.6fr) minmax(200px, 1fr);
         grid-template-rows: 1fr auto;
     }
+
     .f-about {
         grid-column: 1 / 2;
         grid-row: 1 / 2;
     }
+
     .f-buttons {
         grid-column: 2 / 3;
         grid-row: 1 / 2;
         grid-template-columns: 1fr 1fr;
     }
+
     .f-graphics {
         grid-column: 3 / 4;
         grid-row: 1 / 2;
     }
+
     .f-credits {
         grid-column: 1 / 3;
         grid-row: 2 / 3;
     }
+
     .f-updates {
         grid-column: 3 / 4;
         grid-row: 2 / 3;
